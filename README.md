@@ -4,20 +4,17 @@
 
 Docker image for a GitHub Actions self-hosted runner.
 
+## Prebuilt Image
+
+Already available on Docker Hub:
+
+- Image: `docker.io/gr00vysky/gh-runner:latest`
+- Portal: https://hub.docker.com/r/gr00vysky/gh-runner
+
 ## Build
 
 ```sh
 docker build -t gh-runner:latest .
-```
-
-Multi-arch build (local tags):
-
-```sh
-# amd64
-docker build --platform linux/amd64 -t gh-runner:amd64 .
-
-# arm64
-docker build --platform linux/arm64 -t gh-runner:arm64 .
 ```
 
 ## Run
@@ -73,34 +70,3 @@ Examples:
 # enable runner auto-update
 -e DISABLE_AUTO_UPDATE="false"
 ```
-
-## Verify and Remove
-
-```sh
-docker logs -f gh-runner-01
-
-docker stop gh-runner-01
-docker rm gh-runner-01
-```
-
-## Docker Hub Publish Workflow
-
-Workflow file:
-
-- .github/workflows/gh-runner-publish.yml
-
-What it does:
-
-- Builds and pushes linux/amd64 and linux/arm64
-- Pushes tags for latest (default branch), git tags, and short SHA
-
-Required GitHub repository secrets:
-
-- DOCKERHUB_USERNAME
-- DOCKERHUB_TOKEN
-
-## Security
-
-- Treat runner hosts as trusted infrastructure
-- Prefer ephemeral runners
-- Avoid storing long-lived secrets on runner hosts
