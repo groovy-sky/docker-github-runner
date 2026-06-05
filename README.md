@@ -6,10 +6,9 @@ Docker image for a GitHub Actions self-hosted runner.
 
 ## Prebuilt Image
 
-Already available on Docker Hub:
+Already available on GitHub Container Registry:
 
-- Image: `docker.io/gr00vysky/gh-runner:latest`
-- Portal: https://hub.docker.com/r/gr00vysky/gh-runner
+- Image: `ghcr.io/groovy-sky/gh-runner:latest`
 
 ## Build
 

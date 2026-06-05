@@ -1,0 +1,15 @@
+name: Self-hosted Docker runner test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: [self-hosted, linux, x64, docker]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show runner context
+        run: |
+          hostname
+          whoami
+          pwd
