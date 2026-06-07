@@ -59,7 +59,7 @@ jobs:
 
       - name: Lint image with Dockle
         run: |
-          go install github.com/goodwithtech/dockle/cmd/dockle@latest
+          CGO_ENABLED=0 go install github.com/goodwithtech/dockle/cmd/dockle@latest
           "$(go env GOPATH)/bin/dockle" \
             --format list \
             --exit-code 1 \
