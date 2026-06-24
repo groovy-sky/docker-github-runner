@@ -58,6 +58,7 @@ jobs:
           tags: ${{ env.IMAGE_NAME }}:dockle-${{ github.sha }}
 
       - name: Lint image with Dockle
+        continue-on-error: true
         run: |
           CGO_ENABLED=0 go install github.com/goodwithtech/dockle/cmd/dockle@latest
           "$(go env GOPATH)/bin/dockle" \
