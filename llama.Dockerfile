@@ -117,8 +117,9 @@ COPY --from=llama-server /app ${LLAMA_HOME}
 COPY --from=model-downloader /models ${LLAMA_MODEL_DIR}
 
 COPY entrypoint.sh /entrypoint.sh
+COPY llama-entrypoint.sh /llama-entrypoint.sh
 COPY configure.sh /usr/local/bin/configure-runner
-RUN chmod +x /entrypoint.sh /usr/local/bin/configure-runner "${LLAMA_HOME}/llama-server" \
+RUN chmod +x /entrypoint.sh /llama-entrypoint.sh /usr/local/bin/configure-runner "${LLAMA_HOME}/llama-server" \
  && azmcp --version \
  && fabmcp --version \
  && chown -R runner:runner "${RUNNER_HOME}" "${LLAMA_HOME}" "${LLAMA_MODEL_DIR}" /home/runner
@@ -126,10 +127,11 @@ RUN chmod +x /entrypoint.sh /usr/local/bin/configure-runner "${LLAMA_HOME}/llama
 WORKDIR ${RUNNER_HOME}
 USER runner
 
-# The runner remains the entrypoint. Jobs can start the bundled server with:
-# llama-server --model "$LLAMA_MODEL" --host 0.0.0.0 --port 8080
+# llama-entrypoint.sh starts the bundled llama-server (on LLAMA_HOST:LLAMA_PORT,
+# default 0.0.0.0:8080) and then delegates to /entrypoint.sh for the runner.
+# Override host/port with LLAMA_HOST / LLAMA_PORT environment variables.
 # Bundled Microsoft MCP servers can be started with:
 # azmcp server start
 # fabmcp server start --mode all
 EXPOSE 8080
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/llama-entrypoint.sh"]
