@@ -63,7 +63,11 @@ RUN set -eux; \
 FROM --platform=$TARGETPLATFORM docker.io/ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
+ARG TARGETARCH
 ARG MODEL_FILE="Huihui-gemma-4-E2B-it-qat-q4_0-unquantized-abliterated-Q4_K.gguf"
+ARG NODE_VERSION="22.17.1"
+ARG AZURE_MCP_NPM_VERSION="3.0.0-beta.32"
+ARG FABRIC_MCP_NPM_VERSION="1.2.0"
 
 ENV RUNNER_HOME=/opt/actions-runner
 ENV LLAMA_HOME=/opt/llama.cpp
@@ -87,7 +91,23 @@ RUN apt-get update \
       lsb-release \
       tar \
       unzip \
+      xz-utils \
       zlib1g \
+ && case "${TARGETARCH:-amd64}" in \
+      amd64) NODE_ARCH="x64" ;; \
+      arm64) NODE_ARCH="arm64" ;; \
+      *) echo "Unsupported TARGETARCH for Node.js: ${TARGETARCH:-unknown}"; exit 1 ;; \
+    esac \
+ && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" \
+    -o /tmp/node.tar.xz \
+ && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 --no-same-owner \
+ && rm -f /tmp/node.tar.xz \
+ && node --version \
+ && npm --version \
+ && npm install --global --no-audit --no-fund \
+      "@azure/mcp@${AZURE_MCP_NPM_VERSION}" \
+      "@microsoft/fabric-mcp@${FABRIC_MCP_NPM_VERSION}" \
+ && npm cache clean --force \
  && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -d /home/runner -s /bin/bash -u 1001 runner
@@ -99,6 +119,8 @@ COPY --from=model-downloader /models ${LLAMA_MODEL_DIR}
 COPY entrypoint.sh /entrypoint.sh
 COPY configure.sh /usr/local/bin/configure-runner
 RUN chmod +x /entrypoint.sh /usr/local/bin/configure-runner "${LLAMA_HOME}/llama-server" \
+ && azmcp --version \
+ && fabmcp --version \
  && chown -R runner:runner "${RUNNER_HOME}" "${LLAMA_HOME}" "${LLAMA_MODEL_DIR}" /home/runner
 
 WORKDIR ${RUNNER_HOME}
@@ -106,5 +128,8 @@ USER runner
 
 # The runner remains the entrypoint. Jobs can start the bundled server with:
 # llama-server --model "$LLAMA_MODEL" --host 0.0.0.0 --port 8080
+# Bundled Microsoft MCP servers can be started with:
+# azmcp server start
+# fabmcp server start --mode all
 EXPOSE 8080
 ENTRYPOINT ["/entrypoint.sh"]
