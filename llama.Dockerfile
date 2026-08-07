@@ -119,7 +119,11 @@ COPY --from=model-downloader /models ${LLAMA_MODEL_DIR}
 COPY entrypoint.sh /entrypoint.sh
 COPY llama-entrypoint.sh /llama-entrypoint.sh
 COPY configure.sh /usr/local/bin/configure-runner
-RUN chmod +x /entrypoint.sh /llama-entrypoint.sh /usr/local/bin/configure-runner "${LLAMA_HOME}/llama-server" \
+# Register llama.cpp shared libraries (e.g. libllama-server-impl.so) with the
+# dynamic linker so that llama-server can find them at runtime.
+RUN echo "/opt/llama.cpp" > /etc/ld.so.conf.d/llama-cpp.conf \
+ && ldconfig \
+ && chmod +x /entrypoint.sh /llama-entrypoint.sh /usr/local/bin/configure-runner "${LLAMA_HOME}/llama-server" \
  && azmcp --version \
  && fabmcp --version \
  && chown -R runner:runner "${RUNNER_HOME}" "${LLAMA_HOME}" "${LLAMA_MODEL_DIR}" /home/runner
