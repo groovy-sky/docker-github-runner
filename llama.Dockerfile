@@ -100,13 +100,17 @@ RUN apt-get update \
     esac \
  && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" \
     -o /tmp/node.tar.xz \
+ && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" \
+    -o /tmp/SHASUMS256.txt \
+ && grep "node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" /tmp/SHASUMS256.txt | sha256sum -c - \
  && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 --no-same-owner \
- && rm -f /tmp/node.tar.xz \
+ && rm -f /tmp/node.tar.xz /tmp/SHASUMS256.txt \
+ && apt-get purge -y --auto-remove xz-utils \
  && node --version \
  && npm --version \
  && npm install --global --no-audit --no-fund \
-      "@azure/mcp@${AZURE_MCP_NPM_VERSION}" \
-      "@microsoft/fabric-mcp@${FABRIC_MCP_NPM_VERSION}" \
+     "@azure/mcp@${AZURE_MCP_NPM_VERSION}" \
+     "@microsoft/fabric-mcp@${FABRIC_MCP_NPM_VERSION}" \
  && npm cache clean --force \
  && rm -rf /var/lib/apt/lists/*
 
