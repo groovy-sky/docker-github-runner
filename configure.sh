@@ -65,16 +65,16 @@ fetch_registration_token() {
 # Optional:
 #   GITHUB_PAT (used to dynamically mint registration token)
 #   RUNNER_NAME (default: hostname)
+#   DEFAULT_RUNNER_GROUP (default: Default)
 #   RUNNER_LABELS (comma-separated)
-#   RUNNER_GROUP (optional; when omitted GitHub default runner group is used)
+#   RUNNER_GROUP (optional; overrides DEFAULT_RUNNER_GROUP when non-empty)
 #   RUNNER_WORKDIR (default: _work)
 #   EPHEMERAL (default: true)
 #   DISABLE_AUTO_UPDATE (default: true)
 
 print_runner_group_diagnostics() {
-  local scope_desc
-
-  [[ -z "${RUNNER_GROUP:-}" ]] && return 0
+  local effective_runner_group scope_desc
+  effective_runner_group="${RUNNER_GROUP:-${DEFAULT_RUNNER_GROUP}}"
 
   if [[ "${GITHUB_URL%/}" =~ ^https://github\.com/([^/]+)/([^/]+)$ ]]; then
     scope_desc="repository '${BASH_REMATCH[1]}/${BASH_REMATCH[2]}'"
@@ -84,11 +84,16 @@ print_runner_group_diagnostics() {
     scope_desc="the scope implied by GITHUB_URL"
   fi
 
-  echo "RUNNER_GROUP is set to '${RUNNER_GROUP}'."
-  echo "It must exactly match an existing GitHub self-hosted runner group visible to ${scope_desc} (${GITHUB_URL})."
+  if [[ -n "${RUNNER_GROUP:-}" ]]; then
+    echo "RUNNER_GROUP is set to '${RUNNER_GROUP}'."
+  else
+    echo "RUNNER_GROUP is not set; defaulting to '${DEFAULT_RUNNER_GROUP}'."
+  fi
+  echo "Runner will register in GitHub self-hosted runner group '${effective_runner_group}'."
+  echo "The runner group must exactly match an existing GitHub self-hosted runner group visible to ${scope_desc} (${GITHUB_URL})."
   echo "RUNNER_GROUP selects a GitHub runner group; it is not a workflow label list."
   echo "Use RUNNER_LABELS (and workflow runs-on labels) for workload targeting."
-  if [[ "${RUNNER_GROUP}" == *,* ]]; then
+  if [[ -n "${RUNNER_GROUP:-}" && "${RUNNER_GROUP}" == *,* ]]; then
     echo "RUNNER_GROUP contains a comma. If you intended labels, move this value to RUNNER_LABELS." >&2
   fi
 }
@@ -102,8 +107,10 @@ fi
 
 RUNNER_NAME="${RUNNER_NAME:-$(hostname)}"
 RUNNER_WORKDIR="${RUNNER_WORKDIR:-_work}"
+DEFAULT_RUNNER_GROUP="${DEFAULT_RUNNER_GROUP:-Default}"
 EPHEMERAL="${EPHEMERAL:-true}"
 DISABLE_AUTO_UPDATE="${DISABLE_AUTO_UPDATE:-true}"
+EFFECTIVE_RUNNER_GROUP="${RUNNER_GROUP:-${DEFAULT_RUNNER_GROUP}}"
 
 if [[ -n "${GITHUB_PAT:-}" ]]; then
   echo "Fetching short-lived registration token using GITHUB_PAT..."
@@ -127,9 +134,7 @@ if [[ -n "${RUNNER_LABELS:-}" ]]; then
   CONFIG_ARGS+=(--labels "${RUNNER_LABELS}")
 fi
 
-if [[ -n "${RUNNER_GROUP:-}" ]]; then
-  CONFIG_ARGS+=(--runnergroup "${RUNNER_GROUP}")
-fi
+CONFIG_ARGS+=(--runnergroup "${EFFECTIVE_RUNNER_GROUP}")
 
 if [[ "${EPHEMERAL}" == "true" ]]; then
   CONFIG_ARGS+=(--ephemeral)
