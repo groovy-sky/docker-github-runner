@@ -54,6 +54,6 @@ docker run -d --name gh-org-runner-01 \
 `RUNNER_GROUP` must exactly match an existing GitHub self-hosted runner group at the scope implied by `GITHUB_URL`.
 If you are not intentionally assigning a non-default group, leave `RUNNER_GROUP` unset.
 
-## Detailed guidiline
+## Detailed guideline
 
 For more detailed guideline on how to create and use GitHub Actions self-hosted runners you can check [the official documentation](https://docs.github.com/en/actions/hosting-your-own-runners/adding-self-hosted-runners) or this [comprehensive tutorial](https://github.com/groovy-sky/azure/blob/master/github-runner-00/README.md#introduction).
