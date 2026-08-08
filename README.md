@@ -18,8 +18,9 @@ Full variable list with definition:
 * GITHUB_URL - URL of the repository or organization to register the runner to. Examples: `https://github.com/OWNER/REPO` or `https://github.com/ORG`.
 * GITHUB_PAT - Personal Access Token with appropriate scopes to register/remove runners. For repository runners, the token needs `repo` scope. For organization runners, the token needs `admin:org` scope.
 * RUNNER_NAME - Name of the runner to register. This can be any string and is used to identify the runner in GitHub.
-* RUNNER_GROUP - (Optional) Name of an existing GitHub self-hosted runner group. Omit this in most cases so the runner is registered in GitHub's default runner group.
-* RUNNER_LABELS - (Optional) Comma-separated list of labels to assign to the runner. Use labels (and workflow `runs-on`) to target workloads.
+* DEFAULT_RUNNER_GROUP - (Optional) Default GitHub self-hosted runner group to use when `RUNNER_GROUP` is unset or empty. Defaults to `Default`.
+* RUNNER_GROUP - (Optional) Name of an existing GitHub self-hosted runner group. When set to a non-empty value, it overrides `DEFAULT_RUNNER_GROUP`.
+* RUNNER_LABELS - (Optional) Comma-separated list of labels to assign to the runner. Use labels (and workflow `runs-on`) to target workloads; do not put labels in `RUNNER_GROUP`.
 * RUNNER_WORKDIR - (Optional) Directory inside the container to use as the runner's working directory. Default is `_work`.
 * RUNNER_TOKEN - (Optional) Short-lived registration token to use instead of GITHUB_PAT. If both GITHUB_PAT and RUNNER_TOKEN are provided, GITHUB_PAT is used to mint a fresh registration token.
 * EPHEMERAL - (Optional) If set to "true", the runner is registered as ephemeral. Default is "true".
@@ -46,13 +47,14 @@ docker run -d --name gh-org-runner-01 \
   -e GITHUB_URL="https://github.com/ORG" \
   -e GITHUB_PAT="GITHUB_PAT_WITH_ADMIN_ORG_SCOPE" \
   -e RUNNER_NAME="org-runner-01" \
-  -e RUNNER_GROUP="Default" \
+  -e DEFAULT_RUNNER_GROUP="Default" \
   -e RUNNER_LABELS="self-hosted,linux,x64,docker" \
   gh-runner:latest
 ```
 
-`RUNNER_GROUP` must exactly match an existing GitHub self-hosted runner group at the scope implied by `GITHUB_URL`.
-If you are not intentionally assigning a non-default group, leave `RUNNER_GROUP` unset.
+If `RUNNER_GROUP` is unset or empty, the runner is registered in `DEFAULT_RUNNER_GROUP` (which defaults to `Default`).
+If `RUNNER_GROUP` is set to a non-empty value, it must exactly match an existing GitHub self-hosted runner group at the scope implied by `GITHUB_URL`.
+Use `RUNNER_LABELS` for workflow routing labels; `RUNNER_GROUP` accepts a single runner-group name, not a comma-separated label list.
 
 ## Detailed guideline
 
