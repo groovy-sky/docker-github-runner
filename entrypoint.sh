@@ -68,10 +68,32 @@ fetch_runner_token() {
 #   GITHUB_PAT (used to dynamically mint registration/remove tokens)
 #   RUNNER_NAME (default: hostname)
 #   RUNNER_LABELS (comma-separated)
-#   RUNNER_GROUP
+#   RUNNER_GROUP (optional; when omitted GitHub default runner group is used)
 #   RUNNER_WORKDIR (default: _work)
 #   EPHEMERAL (default: true)
 #   DISABLE_AUTO_UPDATE (default: true)
+
+print_runner_group_diagnostics() {
+  local scope_desc
+
+  [[ -z "${RUNNER_GROUP:-}" ]] && return 0
+
+  if [[ "${GITHUB_URL%/}" =~ ^https://github\.com/([^/]+)/([^/]+)$ ]]; then
+    scope_desc="repository '${BASH_REMATCH[1]}/${BASH_REMATCH[2]}'"
+  elif [[ "${GITHUB_URL%/}" =~ ^https://github\.com/([^/]+)$ ]]; then
+    scope_desc="organization '${BASH_REMATCH[1]}'"
+  else
+    scope_desc="the scope implied by GITHUB_URL"
+  fi
+
+  echo "RUNNER_GROUP is set to '${RUNNER_GROUP}'."
+  echo "It must exactly match an existing GitHub self-hosted runner group visible to ${scope_desc} (${GITHUB_URL})."
+  echo "RUNNER_GROUP selects a GitHub runner group; it is not a workflow label list."
+  echo "Use RUNNER_LABELS (and workflow runs-on labels) for workload targeting."
+  if [[ "${RUNNER_GROUP}" == *,* ]]; then
+    echo "RUNNER_GROUP contains a comma. If you intended labels, move this value to RUNNER_LABELS." >&2
+  fi
+}
 
 : "${GITHUB_URL:?GITHUB_URL is required}"
 
@@ -130,6 +152,8 @@ fi
 if [[ "${DISABLE_AUTO_UPDATE}" == "true" ]]; then
   CONFIG_ARGS+=(--disableupdate)
 fi
+
+print_runner_group_diagnostics
 
 echo "Configuring runner ${RUNNER_NAME}..."
 ./config.sh "${CONFIG_ARGS[@]}"
