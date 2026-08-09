@@ -8,23 +8,31 @@ set -euo pipefail
 # standard GitHub Actions runner entrypoint (/entrypoint.sh).
 #
 # Environment variables:
-#   LLAMA_MODEL  – path to the GGUF model file (set in the Dockerfile)
-#   LLAMA_HOME   – directory containing the llama-server binary (on PATH)
-#   LLAMA_HOST   – bind address (default: 0.0.0.0)
-#   LLAMA_PORT   – listen port   (default: 8080)
+#   LLAMA_MODEL     – path to the GGUF model file (set in the Dockerfile)
+#   LLAMA_HOME      – directory containing the llama-server binary (on PATH)
+#   LLAMA_HOST      – bind address (default: 0.0.0.0)
+#   LLAMA_PORT      – listen port   (default: 8080)
+#   LLAMA_CTX_SIZE  – context window (default: 32768; sized for 8 GB RAM)
+#   LLAMA_THREADS   – CPU threads to use (default: 4)
 # ---------------------------------------------------------------------------
 
 LLAMA_HOST="${LLAMA_HOST:-0.0.0.0}"
 LLAMA_PORT="${LLAMA_PORT:-8080}"
+# A 32K context provides the largest practical window while reserving memory
+# for the model, its KV cache, llama-server, and the Actions runner in 8 GB.
+LLAMA_CTX_SIZE="${LLAMA_CTX_SIZE:-32768}"
+LLAMA_THREADS="${LLAMA_THREADS:-4}"
 
 : "${LLAMA_MODEL:?LLAMA_MODEL is required}"
 
-echo "Starting llama-server: model=${LLAMA_MODEL} host=${LLAMA_HOST} port=${LLAMA_PORT}"
+echo "Starting llama-server: model=${LLAMA_MODEL} host=${LLAMA_HOST} port=${LLAMA_PORT} context=${LLAMA_CTX_SIZE} threads=${LLAMA_THREADS}"
 
 llama-server \
-  --model  "${LLAMA_MODEL}" \
-  --host   "${LLAMA_HOST}" \
-  --port   "${LLAMA_PORT}" \
+  --model    "${LLAMA_MODEL}" \
+  --host     "${LLAMA_HOST}" \
+  --port     "${LLAMA_PORT}" \
+  --ctx-size "${LLAMA_CTX_SIZE}" \
+  --threads  "${LLAMA_THREADS}" \
   &
 
 LLAMA_PID=$!
