@@ -63,16 +63,13 @@ RUN set -eux; \
 FROM --platform=$TARGETPLATFORM docker.io/ubuntu:24.04
 
 ARG DEBIAN_FRONTEND=noninteractive
-ARG TARGETARCH
 ARG MODEL_FILE="Huihui-gemma-4-E2B-it-qat-q4_0-unquantized-abliterated-Q4_K.gguf"
-ARG NODE_VERSION="22.17.1"
-ARG AZURE_MCP_NPM_VERSION="3.0.0-beta.32"
-ARG FABRIC_MCP_NPM_VERSION="1.2.0"
 
 ENV RUNNER_HOME=/opt/actions-runner
 ENV LLAMA_HOME=/opt/llama.cpp
 ENV LLAMA_MODEL_DIR=/models
 ENV LLAMA_MODEL=/models/${MODEL_FILE}
+ENV MCP_CONFIG_PATH=/opt/mcp/mcp.json
 ENV PATH="${RUNNER_HOME}:${LLAMA_HOME}:${PATH}"
 
 RUN apt-get update \
@@ -93,21 +90,6 @@ RUN apt-get update \
       unzip \
       xz-utils \
       zlib1g \
- && case "${TARGETARCH:-amd64}" in \
-      amd64) NODE_ARCH="x64" ;; \
-      arm64) NODE_ARCH="arm64" ;; \
-      *) echo "Unsupported TARGETARCH for Node.js: ${TARGETARCH:-unknown}"; exit 1 ;; \
-    esac \
- && curl -fsSL "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" \
-    -o /tmp/node.tar.xz \
- && tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1 --no-same-owner \
- && rm -f /tmp/node.tar.xz \
- && node --version \
- && npm --version \
- && npm install --global --no-audit --no-fund \
-      "@azure/mcp@${AZURE_MCP_NPM_VERSION}" \
-      "@microsoft/fabric-mcp@${FABRIC_MCP_NPM_VERSION}" \
- && npm cache clean --force \
  && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -d /home/runner -s /bin/bash -u 1001 runner
@@ -119,23 +101,23 @@ COPY --from=model-downloader /models ${LLAMA_MODEL_DIR}
 COPY entrypoint.sh /entrypoint.sh
 COPY llama-entrypoint.sh /llama-entrypoint.sh
 COPY configure.sh /usr/local/bin/configure-runner
+COPY mcp/mcp.json ${MCP_CONFIG_PATH}
 # Register llama.cpp shared libraries (e.g. libllama-server-impl.so) with the
 # dynamic linker so that llama-server can find them at runtime.
 RUN echo "/opt/llama.cpp" > /etc/ld.so.conf.d/llama-cpp.conf \
  && ldconfig \
+ && chmod 644 "${MCP_CONFIG_PATH}" \
  && chmod +x /entrypoint.sh /llama-entrypoint.sh /usr/local/bin/configure-runner "${LLAMA_HOME}/llama-server" \
- && azmcp --version \
- && fabmcp --version \
- && chown -R runner:runner "${RUNNER_HOME}" "${LLAMA_HOME}" "${LLAMA_MODEL_DIR}" /home/runner
+ && chown -R runner:runner "${RUNNER_HOME}" "${LLAMA_HOME}" "${LLAMA_MODEL_DIR}" /home/runner /opt/mcp
 
 WORKDIR ${RUNNER_HOME}
 USER runner
 
 # llama-entrypoint.sh starts the bundled llama-server (on LLAMA_HOST:LLAMA_PORT,
-# default 0.0.0.0:8080) and then delegates to /entrypoint.sh for the runner.
-# Override host/port with LLAMA_HOST / LLAMA_PORT environment variables.
-# Bundled Microsoft MCP servers can be started with:
-# azmcp server start
-# fabmcp server start --mode all
+# default 0.0.0.0:8080) as a local OpenAI-compatible inference server and then
+# delegates to /entrypoint.sh for the runner. MCP-capable agents/clients can
+# optionally load remote MCP server definitions from ${MCP_CONFIG_PATH}; llama.cpp
+# does not connect to MCP servers directly. Override host/port with LLAMA_HOST /
+# LLAMA_PORT environment variables.
 EXPOSE 8080
 ENTRYPOINT ["/llama-entrypoint.sh"]
