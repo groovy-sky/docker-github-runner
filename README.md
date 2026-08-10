@@ -2,7 +2,7 @@
 
 ![](logo.svg)
 
-This repostiory contains Docker images for a GitHub Actions self-hosted runner. It provides ready-to-use images including `ghcr.io/groovy-sky/gh-runner:latest` and the llama-enabled `ghcr.io/groovy-sky/llama-gh-runner:latest`.
+This repository contains Docker images for a GitHub Actions self-hosted runner. It provides ready-to-use images including `ghcr.io/groovy-sky/gh-runner:latest` and the llama-enabled `ghcr.io/groovy-sky/llama-gh-runner:latest`.
 
 ## Build
 
@@ -66,7 +66,7 @@ Use `RUNNER_LABELS` for workflow routing labels; `RUNNER_GROUP` accepts a single
 
 The llama-enabled image bundles `llama.cpp`'s `llama-server` and starts it locally on `http://0.0.0.0:8080/v1` by default via `/llama-entrypoint.sh`. This server is OpenAI-compatible model inference only; it is not an MCP client and does not directly load or invoke MCP servers.
 
-For MCP-capable agents/clients running inside the container, the image ships a version-controlled remote MCP configuration at `MCP_CONFIG_PATH=/opt/mcp/mcp.json`. The file contains opt-in Streamable HTTP server definitions for:
+For MCP-capable agents/clients running inside the container, the image ships a version-controlled remote MCP configuration at the path set by `MCP_CONFIG_PATH` (`/opt/mcp/mcp.json`). The file contains opt-in Streamable HTTP server definitions for:
 
 * Microsoft Foundry - `https://mcp.ai.azure.com`
 * Azure Resource Manager - `https://mcp.management.azure.com`

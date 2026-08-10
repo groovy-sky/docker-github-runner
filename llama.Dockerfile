@@ -93,6 +93,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 RUN useradd -m -d /home/runner -s /bin/bash -u 1001 runner
+RUN mkdir -p /opt/mcp
 
 COPY --from=runner-downloader /opt/actions-runner ${RUNNER_HOME}
 COPY --from=llama-server /app ${LLAMA_HOME}
