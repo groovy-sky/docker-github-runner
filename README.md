@@ -73,7 +73,54 @@ For MCP-capable agents/clients running inside the container, the image ships a v
 * GitHub - `https://api.githubcopilot.com/mcp`
 * Microsoft Learn - `https://learn.microsoft.com/api/mcp`
 
-The configuration intentionally does not include credentials or tokens. Authentication and any client-specific MCP enablement must be supplied by the MCP-capable agent/client you run in the container.
+The configuration intentionally does not include credentials or tokens.
+
+### MCP agent
+
+The llama-enabled image includes `mcp-agent`, a Streamable HTTP MCP client that
+uses the bundled llama server as its OpenAI-compatible model provider. It reads
+the server definitions from `MCP_CONFIG_PATH`, which defaults to
+`/opt/mcp/mcp.json`.
+
+Use it from a runner job or an interactive container after llama-server has
+started:
+
+```sh
+# Verify that the Microsoft Learn MCP server initializes and exposes tools.
+mcp-agent --server microsoft-learn --list-tools
+
+# Ask the local model a question; it can call Microsoft Learn MCP tools.
+mcp-agent --server microsoft-learn --prompt "How do I configure an Azure Container App?"
+```
+
+`mcp-agent` defaults to `http://127.0.0.1:8080/v1`. Override this with
+`LLAMA_BASE_URL`, or explicitly select a model with `LLAMA_MODEL_NAME`.
+
+Microsoft Learn does not need credentials. For an authenticated server, inject
+a short-lived bearer token at runtime, never in the image:
+
+```sh
+docker run \
+  -e MCP_AUTH_GITHUB_TOKEN="$MCP_AUTH_GITHUB_TOKEN" \
+  ghcr.io/groovy-sky/llama-gh-runner:latest
+```
+
+Alternatively, mount a JSON credential file and set `MCP_AUTH_FILE`; it maps
+each MCP server name to its token:
+
+```json
+{ "github": "short-lived-token" }
+```
+
+The container needs DNS resolution and outbound HTTPS access to each configured
+MCP host, including `learn.microsoft.com`. Neither llama-server nor
+`mcp-agent` can bypass the deployment network's DNS or egress policy.
+
+Run the Microsoft Learn smoke test against a built image with:
+
+```sh
+./tests/mcp-microsoft-learn-smoke-test.sh llama-gh-runner:latest
+```
 
 ## Detailed guideline
 

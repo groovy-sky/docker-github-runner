@@ -39,7 +39,17 @@ RUN set -eux; \
 FROM --platform=$TARGETPLATFORM ghcr.io/ggml-org/llama.cpp:server AS llama-server
 
 ##
-## Stage 3: model downloader
+## Stage 3: MCP agent dependencies
+##
+FROM --platform=$BUILDPLATFORM docker.io/node:22-bookworm-slim AS mcp-agent-builder
+
+WORKDIR /opt/mcp-agent
+COPY mcp-agent/package.json mcp-agent/package-lock.json ./
+RUN npm ci --omit=dev
+COPY mcp-agent/mcp-agent.js ./
+
+##
+## Stage 4: model downloader
 ##
 FROM --platform=$TARGETPLATFORM docker.io/ubuntu:24.04 AS model-downloader
 
@@ -58,7 +68,7 @@ RUN set -eux; \
     test -s "/models/${MODEL_FILE}"
 
 ##
-## Stage 4: GitHub Actions runner with llama.cpp and the bundled GGUF model
+## Stage 5: GitHub Actions runner with llama.cpp, MCP agent, and bundled GGUF model
 ##
 FROM --platform=$TARGETPLATFORM docker.io/ubuntu:24.04
 
@@ -98,6 +108,8 @@ RUN mkdir -p /opt/mcp
 COPY --from=runner-downloader /opt/actions-runner ${RUNNER_HOME}
 COPY --from=llama-server /app ${LLAMA_HOME}
 COPY --from=model-downloader /models ${LLAMA_MODEL_DIR}
+COPY --from=mcp-agent-builder /usr/local/bin/node /usr/local/bin/node
+COPY --from=mcp-agent-builder /opt/mcp-agent /opt/mcp-agent
 
 COPY entrypoint.sh /entrypoint.sh
 COPY llama-entrypoint.sh /llama-entrypoint.sh
@@ -108,7 +120,8 @@ COPY mcp/mcp.json ${MCP_CONFIG_PATH}
 RUN echo "/opt/llama.cpp" > /etc/ld.so.conf.d/llama-cpp.conf \
  && ldconfig \
  && chmod 644 "${MCP_CONFIG_PATH}" \
- && chmod +x /entrypoint.sh /llama-entrypoint.sh /usr/local/bin/configure-runner "${LLAMA_HOME}/llama-server" \
+ && ln -s /opt/mcp-agent/mcp-agent.js /usr/local/bin/mcp-agent \
+ && chmod +x /entrypoint.sh /llama-entrypoint.sh /usr/local/bin/configure-runner /opt/mcp-agent/mcp-agent.js "${LLAMA_HOME}/llama-server" \
  && chown -R runner:runner "${RUNNER_HOME}" "${LLAMA_HOME}" "${LLAMA_MODEL_DIR}" /home/runner /opt/mcp
 
 WORKDIR ${RUNNER_HOME}
