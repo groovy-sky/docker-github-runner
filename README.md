@@ -2,12 +2,18 @@
 
 ![](logo.svg)
 
-This repostiory contains a docker image for a GitHub Actions self-hosted runner. It also provides a ready-to-use image - `ghcr.io/groovy-sky/gh-runner:latest`
+This repository contains Docker images for a GitHub Actions self-hosted runner. It provides ready-to-use images including `ghcr.io/groovy-sky/gh-runner:latest` and the llama-enabled `ghcr.io/groovy-sky/llama-gh-runner:latest`.
 
 ## Build
 
 ```sh
 docker build -t gh-runner:latest .
+```
+
+Build the llama-enabled variant:
+
+```sh
+docker build -f llama.Dockerfile -t llama-gh-runner:latest .
 ```
 
 ## Run
@@ -55,6 +61,19 @@ docker run -d --name gh-org-runner-01 \
 If `RUNNER_GROUP` is unset or empty, the runner is registered in `DEFAULT_RUNNER_GROUP` (which defaults to `Default`).
 If `RUNNER_GROUP` is set to a non-empty value, it must exactly match an existing GitHub self-hosted runner group at the scope implied by `GITHUB_URL`.
 Use `RUNNER_LABELS` for workflow routing labels; `RUNNER_GROUP` accepts a single runner-group name, not a comma-separated label list.
+
+## Llama-enabled image and MCP configuration
+
+The llama-enabled image bundles `llama.cpp`'s `llama-server` and starts it locally on `http://0.0.0.0:8080/v1` by default via `/llama-entrypoint.sh`. This server is OpenAI-compatible model inference only; it is not an MCP client and does not directly load or invoke MCP servers.
+
+For MCP-capable agents/clients running inside the container, the image ships a version-controlled remote MCP configuration at the path set by `MCP_CONFIG_PATH` (`/opt/mcp/mcp.json`). The file contains opt-in Streamable HTTP server definitions for:
+
+* Microsoft Foundry - `https://mcp.ai.azure.com`
+* Azure Resource Manager - `https://mcp.management.azure.com`
+* GitHub - `https://api.githubcopilot.com/mcp`
+* Microsoft Learn - `https://learn.microsoft.com/api/mcp`
+
+The configuration intentionally does not include credentials or tokens. Authentication and any client-specific MCP enablement must be supplied by the MCP-capable agent/client you run in the container.
 
 ## Detailed guideline
 
