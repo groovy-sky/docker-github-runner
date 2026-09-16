@@ -21,7 +21,7 @@ docker build -f llama.Dockerfile -t llama-gh-runner:latest .
 Github runner can be used as a repository or organization runner. The only difference is the GITHUB_URL and the required permissions for the GITHUB_PAT.
 
 Full variable list with definition:
-* GITHUB_URL - URL of the repository or organization to register the runner to. Examples: `https://github.com/OWNER/REPO`, `https://github.com/ORG`, `https://<subdomain>.ghe.com/OWNER/REPO`, or `https://<subdomain>.ghe.com/ORG`.
+* GITHUB_URL - URL of the repository or organization to register the runner to. Examples: `https://github.com/OWNER/REPO`, `https://github.com/ORG`, `https://<enterprise-host>/OWNER/REPO`, or `https://<enterprise-host>/ORG` (for example `https://acme.ghe.com/OWNER/REPO`).
 * GITHUB_PAT - Personal Access Token with appropriate scopes to register/remove runners. For repository runners, the token needs `repo` scope. For organization runners, the token needs `admin:org` scope.
 * RUNNER_NAME - Name of the runner to register. This can be any string and is used to identify the runner in GitHub.
 * DEFAULT_RUNNER_GROUP - (Optional) Default GitHub self-hosted runner group to use when `RUNNER_GROUP` is unset or empty. Defaults to `Default`.

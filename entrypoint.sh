@@ -21,13 +21,7 @@ fetch_runner_token() {
     candidates+=("orgs/${owner}")
   else
     echo "Unsupported GITHUB_URL format: ${GITHUB_URL}" >&2
-    echo "Expected https://github.com/ORG, https://github.com/OWNER/REPO, https://<subdomain>.ghe.com/ORG, or https://<subdomain>.ghe.com/OWNER/REPO" >&2
-    return 1
-  fi
-
-  if [[ "${host}" != "github.com" && ! "${host}" =~ ^[^./]+\.ghe\.com$ ]]; then
-    echo "Unsupported GitHub host in GITHUB_URL: ${host}" >&2
-    echo "Expected host github.com or <subdomain>.ghe.com" >&2
+    echo "Expected https://github.com/ORG, https://github.com/OWNER/REPO, https://<enterprise-host>/ORG, or https://<enterprise-host>/OWNER/REPO" >&2
     return 1
   fi
 
@@ -79,7 +73,7 @@ fetch_runner_token() {
 
 # Required runtime env:
 #   GITHUB_URL   -> https://github.com/<org-or-user>/<repo>, https://github.com/<org>,
-#                   https://<subdomain>.ghe.com/<org-or-user>/<repo>, or https://<subdomain>.ghe.com/<org>
+#                   https://<enterprise-host>/<org-or-user>/<repo>, or https://<enterprise-host>/<org>
 #   RUNNER_TOKEN -> registration token
 #
 # Optional:
