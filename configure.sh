@@ -90,12 +90,13 @@ fetch_registration_token() {
 #   DISABLE_AUTO_UPDATE (default: true)
 
 print_runner_group_diagnostics() {
-  local effective_runner_group scope_desc
+  local effective_runner_group scope_desc normalized_github_url
   effective_runner_group="${RUNNER_GROUP:-${DEFAULT_RUNNER_GROUP}}"
+  normalized_github_url="${GITHUB_URL%/}"
 
-  if [[ "${GITHUB_URL}" =~ ^https://[^/]+/([^/]+)/([^/]+)/?$ ]]; then
+  if [[ "${normalized_github_url}" =~ ^https://[^/]+/([^/]+)/([^/]+)$ ]]; then
     scope_desc="repository '${BASH_REMATCH[1]}/${BASH_REMATCH[2]}'"
-  elif [[ "${GITHUB_URL}" =~ ^https://[^/]+/([^/]+)/?$ ]]; then
+  elif [[ "${normalized_github_url}" =~ ^https://[^/]+/([^/]+)$ ]]; then
     scope_desc="organization '${BASH_REMATCH[1]}'"
   else
     scope_desc="the scope implied by GITHUB_URL"
