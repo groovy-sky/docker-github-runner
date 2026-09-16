@@ -5,16 +5,17 @@ cd /opt/actions-runner
 
 fetch_runner_token() {
   local action="$1"
-  local endpoint response code body token
+  local trimmed endpoint response code body token
   local host owner repo api_base
   local -a candidates=() api_bases=()
 
-  if [[ "${GITHUB_URL}" =~ ^https://([^/]+)/([^/]+)/([^/]+)/?$ ]]; then
+  trimmed="${GITHUB_URL%/}"
+  if [[ "${trimmed}" =~ ^https://([^/]+)/([^/]+)/([^/]+)$ ]]; then
     host="${BASH_REMATCH[1]}"
     owner="${BASH_REMATCH[2]}"
     repo="${BASH_REMATCH[3]}"
     candidates+=("repos/${owner}/${repo}")
-  elif [[ "${GITHUB_URL}" =~ ^https://([^/]+)/([^/]+)/?$ ]]; then
+  elif [[ "${trimmed}" =~ ^https://([^/]+)/([^/]+)$ ]]; then
     host="${BASH_REMATCH[1]}"
     owner="${BASH_REMATCH[2]}"
     candidates+=("orgs/${owner}")
