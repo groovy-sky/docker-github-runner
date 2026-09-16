@@ -29,7 +29,7 @@ fetch_runner_token() {
   if [[ "${host}" == "github.com" ]]; then
     api_bases=("https://api.github.com")
   elif [[ "${host}" =~ \.ghe\.com$ ]]; then
-    api_bases=("https://api.ghe.com" "https://api.${host}" "https://${host}/api/v3")
+    api_bases=("https://api.ghe.com" "https://${host}/api/v3")
   else
     api_bases=("https://${host}/api/v3")
   fi
