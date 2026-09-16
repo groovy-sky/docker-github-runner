@@ -38,10 +38,10 @@ fetch_registration_token() {
     return 1
   fi
 
-  if [[ "${host}" == "github.com" ]]; then
+  if [[ -n "${GITHUB_API_URL:-}" ]]; then
+    api_bases=("${GITHUB_API_URL%/}")
+  elif [[ "${host}" == "github.com" ]]; then
     api_bases=("https://api.github.com")
-  elif [[ "${host}" =~ \.ghe\.com$ ]]; then
-    api_bases=("https://api.ghe.com" "https://${host}/api/v3")
   else
     api_bases=("https://${host}/api/v3")
   fi
@@ -95,6 +95,7 @@ fetch_registration_token() {
 #
 # Optional:
 #   GITHUB_PAT (used to dynamically mint registration token)
+#   GITHUB_API_URL (optional API base override, e.g. https://api.github.com or https://<enterprise-host>/api/v3)
 #   RUNNER_NAME (default: hostname)
 #   DEFAULT_RUNNER_GROUP (default: Default)
 #   RUNNER_LABELS (comma-separated)
