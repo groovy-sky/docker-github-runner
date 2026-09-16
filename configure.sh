@@ -6,10 +6,14 @@ cd /opt/actions-runner
 normalize_github_url() {
   local normalized
   normalized="$1"
+  if [[ "${normalized}" == http://* ]]; then
+    echo "Unsupported GITHUB_URL format: ${normalized}" >&2
+    echo "Use github.com/ORG, github.com/OWNER/REPO, <enterprise-host>/ORG, or <enterprise-host>/OWNER/REPO. https://... is accepted, but http://... is not." >&2
+    return 1
+  fi
   normalized="${normalized%%[\?#]*}"
   normalized="${normalized%/}"
   normalized="${normalized#https://}"
-  normalized="${normalized#http://}"
   printf '%s\n' "${normalized}"
 }
 
@@ -18,7 +22,7 @@ fetch_registration_token() {
   local host owner repo api_base
   local -a candidates=() api_bases=()
 
-  trimmed="$(normalize_github_url "${GITHUB_URL}")"
+  trimmed="$(normalize_github_url "${GITHUB_URL}")" || return 1
   if [[ "${trimmed}" =~ ^([^/]+)/([^/]+)/([^/]+)$ ]]; then
     host="${BASH_REMATCH[1]}"
     owner="${BASH_REMATCH[2]}"
@@ -102,7 +106,7 @@ fetch_registration_token() {
 print_runner_group_diagnostics() {
   local effective_runner_group scope_desc normalized_github_url
   effective_runner_group="${RUNNER_GROUP:-${DEFAULT_RUNNER_GROUP}}"
-  normalized_github_url="$(normalize_github_url "${GITHUB_URL}")"
+  normalized_github_url="$(normalize_github_url "${GITHUB_URL}")" || return 1
 
   if [[ "${normalized_github_url}" =~ ^[^/]+/([^/]+)/([^/]+)$ ]]; then
     scope_desc="repository '${BASH_REMATCH[1]}/${BASH_REMATCH[2]}'"
