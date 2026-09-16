@@ -24,6 +24,12 @@ fetch_registration_token() {
     return 1
   fi
 
+  if [[ "${host}" != "github.com" && ! "${host}" =~ \.ghe\.com$ ]]; then
+    echo "Unsupported GitHub host in GITHUB_URL: ${host}" >&2
+    echo "Expected host github.com or <subdomain>.ghe.com" >&2
+    return 1
+  fi
+
   if [[ "${host}" == "github.com" ]]; then
     api_base="https://api.github.com"
   else
