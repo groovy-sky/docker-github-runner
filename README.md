@@ -18,7 +18,7 @@ docker build -f llama.Dockerfile -t llama-gh-runner:latest .
 
 ## Run
 
-Github runner can be used as a repository or organization runner. The only difference is the GITHUB_URL and the required permissions for the GITHUB_PAT.
+GitHub runner can be used as a repository or organization runner. The only difference is the GITHUB_URL and the required permissions for the GITHUB_PAT.
 
 Full variable list with definition:
 * GITHUB_URL - URL of the repository or organization to register the runner to. Examples: `https://github.com/OWNER/REPO`, `https://github.com/ORG`, `https://<enterprise-host>/OWNER/REPO`, or `https://<enterprise-host>/ORG` (for example `https://acme.ghe.com/OWNER/REPO`).

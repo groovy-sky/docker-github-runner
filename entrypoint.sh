@@ -9,7 +9,8 @@ fetch_runner_token() {
   local host owner repo api_base
   local -a candidates=() api_bases=()
 
-  trimmed="${GITHUB_URL%/}"
+  trimmed="${GITHUB_URL%%[\?#]*}"
+  trimmed="${trimmed%/}"
   if [[ "${trimmed}" =~ ^https://([^/]+)/([^/]+)/([^/]+)$ ]]; then
     host="${BASH_REMATCH[1]}"
     owner="${BASH_REMATCH[2]}"
@@ -93,7 +94,8 @@ fetch_runner_token() {
 print_runner_group_diagnostics() {
   local effective_runner_group scope_desc normalized_github_url
   effective_runner_group="${RUNNER_GROUP:-${DEFAULT_RUNNER_GROUP}}"
-  normalized_github_url="${GITHUB_URL%/}"
+  normalized_github_url="${GITHUB_URL%%[\?#]*}"
+  normalized_github_url="${normalized_github_url%/}"
 
   if [[ "${normalized_github_url}" =~ ^https://[^/]+/([^/]+)/([^/]+)$ ]]; then
     scope_desc="repository '${BASH_REMATCH[1]}/${BASH_REMATCH[2]}'"
