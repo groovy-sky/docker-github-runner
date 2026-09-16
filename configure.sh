@@ -26,7 +26,7 @@ fetch_registration_token() {
   if [[ "${host}" == "github.com" ]]; then
     api_base="https://api.github.com"
   elif [[ "${host}" =~ \.ghe\.com$ ]]; then
-    api_base="https://api.${host}"
+    api_base="https://api.ghe.com"
   else
     api_base="https://${host}/api/v3"
   fi
