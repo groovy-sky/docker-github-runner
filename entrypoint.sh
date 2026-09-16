@@ -3,26 +3,35 @@ set -euo pipefail
 
 cd /opt/actions-runner
 
+normalize_github_url() {
+  local normalized
+  normalized="$1"
+  normalized="${normalized%%[\?#]*}"
+  normalized="${normalized%/}"
+  normalized="${normalized#https://}"
+  normalized="${normalized#http://}"
+  printf '%s\n' "${normalized}"
+}
+
 fetch_runner_token() {
   local action="$1"
   local trimmed endpoint response code body token
   local host owner repo api_base
   local -a candidates=() api_bases=()
 
-  trimmed="${GITHUB_URL%%[\?#]*}"
-  trimmed="${trimmed%/}"
-  if [[ "${trimmed}" =~ ^https://([^/]+)/([^/]+)/([^/]+)$ ]]; then
+  trimmed="$(normalize_github_url "${GITHUB_URL}")"
+  if [[ "${trimmed}" =~ ^([^/]+)/([^/]+)/([^/]+)$ ]]; then
     host="${BASH_REMATCH[1]}"
     owner="${BASH_REMATCH[2]}"
     repo="${BASH_REMATCH[3]}"
     candidates+=("repos/${owner}/${repo}")
-  elif [[ "${trimmed}" =~ ^https://([^/]+)/([^/]+)$ ]]; then
+  elif [[ "${trimmed}" =~ ^([^/]+)/([^/]+)$ ]]; then
     host="${BASH_REMATCH[1]}"
     owner="${BASH_REMATCH[2]}"
     candidates+=("orgs/${owner}")
   else
     echo "Unsupported GITHUB_URL format: ${GITHUB_URL}" >&2
-    echo "Expected https://github.com/ORG, https://github.com/OWNER/REPO, https://<enterprise-host>/ORG, or https://<enterprise-host>/OWNER/REPO" >&2
+    echo "Expected github.com/ORG, github.com/OWNER/REPO, <enterprise-host>/ORG, or <enterprise-host>/OWNER/REPO (with or without an https:// prefix)" >&2
     return 1
   fi
 
@@ -68,7 +77,7 @@ fetch_runner_token() {
 
   if [[ "${#candidates[@]}" == "1" && "${candidates[0]}" == orgs/* ]]; then
     echo "Failed to fetch ${action} token from GitHub API for organization '${owner}'." >&2
-    echo "If this is a personal account, use a repository URL instead: https://github.com/OWNER/REPO" >&2
+    echo "If this is a personal account, use a repository URL instead: github.com/OWNER/REPO" >&2
     return 1
   fi
 
@@ -77,8 +86,8 @@ fetch_runner_token() {
 }
 
 # Required runtime env:
-#   GITHUB_URL   -> https://github.com/<org-or-user>/<repo>, https://github.com/<org>,
-#                   https://<enterprise-host>/<org-or-user>/<repo>, or https://<enterprise-host>/<org>
+#   GITHUB_URL   -> github.com/<org-or-user>/<repo>, github.com/<org>,
+#                   <enterprise-host>/<org-or-user>/<repo>, or <enterprise-host>/<org>
 #   RUNNER_TOKEN -> registration token
 #
 # Optional:
@@ -94,12 +103,11 @@ fetch_runner_token() {
 print_runner_group_diagnostics() {
   local effective_runner_group scope_desc normalized_github_url
   effective_runner_group="${RUNNER_GROUP:-${DEFAULT_RUNNER_GROUP}}"
-  normalized_github_url="${GITHUB_URL%%[\?#]*}"
-  normalized_github_url="${normalized_github_url%/}"
+  normalized_github_url="$(normalize_github_url "${GITHUB_URL}")"
 
-  if [[ "${normalized_github_url}" =~ ^https://[^/]+/([^/]+)/([^/]+)$ ]]; then
+  if [[ "${normalized_github_url}" =~ ^[^/]+/([^/]+)/([^/]+)$ ]]; then
     scope_desc="repository '${BASH_REMATCH[1]}/${BASH_REMATCH[2]}'"
-  elif [[ "${normalized_github_url}" =~ ^https://[^/]+/([^/]+)$ ]]; then
+  elif [[ "${normalized_github_url}" =~ ^[^/]+/([^/]+)$ ]]; then
     scope_desc="organization '${BASH_REMATCH[1]}'"
   else
     scope_desc="the scope implied by GITHUB_URL"
@@ -111,7 +119,7 @@ print_runner_group_diagnostics() {
     echo "RUNNER_GROUP is not set; defaulting to '${DEFAULT_RUNNER_GROUP}'."
   fi
   echo "Runner will register in GitHub self-hosted runner group '${effective_runner_group}'."
-  echo "The runner group must exactly match an existing GitHub self-hosted runner group visible to ${scope_desc} (${GITHUB_URL})."
+  echo "The runner group must exactly match an existing GitHub self-hosted runner group visible to ${scope_desc} (${normalized_github_url})."
   echo "RUNNER_GROUP selects a GitHub runner group; it is not a workflow label list."
   echo "Use RUNNER_LABELS (and workflow runs-on labels) for workload targeting."
   if [[ -n "${RUNNER_GROUP:-}" && "${RUNNER_GROUP}" == *,* ]]; then
@@ -132,6 +140,7 @@ DEFAULT_RUNNER_GROUP="${DEFAULT_RUNNER_GROUP:-Default}"
 EPHEMERAL="${EPHEMERAL:-true}"
 DISABLE_AUTO_UPDATE="${DISABLE_AUTO_UPDATE:-true}"
 EFFECTIVE_RUNNER_GROUP="${RUNNER_GROUP:-${DEFAULT_RUNNER_GROUP}}"
+NORMALIZED_GITHUB_URL="$(normalize_github_url "${GITHUB_URL}")"
 
 if [[ -n "${GITHUB_PAT:-}" ]]; then
   echo "Fetching short-lived registration token using GITHUB_PAT..."
@@ -155,7 +164,7 @@ cleanup() {
 trap cleanup EXIT INT TERM
 
 CONFIG_ARGS=(
-  --url "${GITHUB_URL}"
+  --url "${NORMALIZED_GITHUB_URL}"
   --token "${RUNNER_TOKEN}"
   --name "${RUNNER_NAME}"
   --work "${RUNNER_WORKDIR}"

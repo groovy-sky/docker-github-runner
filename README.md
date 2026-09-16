@@ -21,7 +21,7 @@ docker build -f llama.Dockerfile -t llama-gh-runner:latest .
 GitHub runner can be used as a repository or organization runner. The only difference is the GITHUB_URL and the required permissions for the GITHUB_PAT.
 
 Full variable list with definition:
-* GITHUB_URL - URL of the repository or organization to register the runner to. Examples: `https://github.com/OWNER/REPO`, `https://github.com/ORG`, `https://<enterprise-host>/OWNER/REPO`, or `https://<enterprise-host>/ORG` (for example `https://acme.ghe.com/OWNER/REPO`).
+* GITHUB_URL - Repository or organization address to register the runner to. Preferred examples: `github.com/OWNER/REPO`, `github.com/ORG`, `<enterprise-host>/OWNER/REPO`, or `<enterprise-host>/ORG` (for example `acme.ghe.com/OWNER/REPO`). `https://...` inputs are also accepted and normalized internally to plain `host/path`.
   - API endpoint resolution for `GITHUB_PAT`: `github.com` uses `https://api.github.com`; `*.ghe.com` tries `https://api.ghe.com` first, then `https://<enterprise-host>/api/v3`; other enterprise hosts use `https://<enterprise-host>/api/v3`.
 * GITHUB_PAT - Personal Access Token with appropriate scopes to register/remove runners. For repository runners, the token needs `repo` scope. For organization runners, the token needs `admin:org` scope.
 * RUNNER_NAME - Name of the runner to register. This can be any string and is used to identify the runner in GitHub.
@@ -38,7 +38,7 @@ Repository runner:
 ```sh
 docker run -d --name gh-runner-01 \
   --restart unless-stopped \
-  -e GITHUB_URL="https://github.com/OWNER/REPO" \
+  -e GITHUB_URL="github.com/OWNER/REPO" \
   -e GITHUB_PAT="GITHUB_PAT_WITH_REPO_RUNNER_SCOPE" \
   -e RUNNER_NAME="runner-01" \
   -e RUNNER_LABELS="self-hosted,linux,x64,docker" \
@@ -51,7 +51,7 @@ Organization runner:
 ```sh
 docker run -d --name gh-org-runner-01 \
   --restart unless-stopped \
-  -e GITHUB_URL="https://github.com/ORG" \
+  -e GITHUB_URL="github.com/ORG" \
   -e GITHUB_PAT="GITHUB_PAT_WITH_ADMIN_ORG_SCOPE" \
   -e RUNNER_NAME="org-runner-01" \
   -e DEFAULT_RUNNER_GROUP="Default" \
