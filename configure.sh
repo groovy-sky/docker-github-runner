@@ -6,7 +6,7 @@ cd /opt/actions-runner
 fetch_registration_token() {
   local endpoint response code body token
   local host owner repo api_base
-  local -a candidates=()
+  local -a candidates=() api_bases=()
 
   if [[ "${GITHUB_URL}" =~ ^https://([^/]+)/([^/]+)/([^/]+)/?$ ]]; then
     host="${BASH_REMATCH[1]}"
@@ -24,16 +24,17 @@ fetch_registration_token() {
   fi
 
   if [[ "${host}" == "github.com" ]]; then
-    api_base="https://api.github.com"
+    api_bases=("https://api.github.com")
   elif [[ "${host}" =~ \.ghe\.com$ ]]; then
-    api_base="https://api.ghe.com"
+    api_bases=("https://api.${host}" "https://api.ghe.com" "https://${host}/api/v3")
   else
-    api_base="https://${host}/api/v3"
+    api_bases=("https://${host}/api/v3")
   fi
 
-  for candidate in "${candidates[@]}"; do
-    endpoint="${api_base}/${candidate}/actions/runners/registration-token"
-    response="$(curl -sS \
+  for api_base in "${api_bases[@]}"; do
+    for candidate in "${candidates[@]}"; do
+      endpoint="${api_base}/${candidate}/actions/runners/registration-token"
+      response="$(curl -sS \
       -X POST \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
@@ -41,24 +42,25 @@ fetch_registration_token() {
       -w $'\n%{http_code}' \
       "${endpoint}")"
 
-    code="${response##*$'\n'}"
-    body="${response%$'\n'*}"
+      code="${response##*$'\n'}"
+      body="${response%$'\n'*}"
 
-    if [[ "${code}" == "404" ]]; then
-      continue
-    fi
+      if [[ "${code}" == "404" ]]; then
+        continue
+      fi
 
-    if [[ "${code}" != "200" && "${code}" != "201" ]]; then
-      echo "GitHub API call failed (${code}) at ${endpoint}" >&2
-      [[ -n "${body}" ]] && echo "${body}" >&2
-      return 1
-    fi
+      if [[ "${code}" != "200" && "${code}" != "201" ]]; then
+        echo "GitHub API call failed (${code}) at ${endpoint}" >&2
+        [[ -n "${body}" ]] && echo "${body}" >&2
+        return 1
+      fi
 
-    token="$(jq -r '.token // empty' <<< "${body}")"
-    if [[ -n "${token}" ]]; then
-      printf '%s\n' "${token}"
-      return 0
-    fi
+      token="$(jq -r '.token // empty' <<< "${body}")"
+      if [[ -n "${token}" ]]; then
+        printf '%s\n' "${token}"
+        return 0
+      fi
+    done
   done
 
   if [[ "${#candidates[@]}" == "1" && "${candidates[0]}" == orgs/* ]]; then
