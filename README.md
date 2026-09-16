@@ -22,7 +22,7 @@ GitHub runner can be used as a repository or organization runner. The only diffe
 
 Full variable list with definition:
 * GITHUB_URL - URL of the repository or organization to register the runner to. Examples: `https://github.com/OWNER/REPO`, `https://github.com/ORG`, `https://<enterprise-host>/OWNER/REPO`, or `https://<enterprise-host>/ORG` (for example `https://acme.ghe.com/OWNER/REPO`).
-  - API endpoint resolution for `GITHUB_PAT`: `github.com` uses `https://api.github.com`; `*.ghe.com` tries `https://api.ghe.com` first, then `https://api.<enterprise-host>`, then `https://<enterprise-host>/api/v3`; other enterprise hosts use `https://<enterprise-host>/api/v3`.
+  - API endpoint resolution for `GITHUB_PAT`: `github.com` uses `https://api.github.com`; `*.ghe.com` tries `https://api.ghe.com` first, then `https://api.<full-enterprise-host>` (for example `https://api.acme.ghe.com` when `GITHUB_URL` host is `acme.ghe.com`), then `https://<enterprise-host>/api/v3`; other enterprise hosts use `https://<enterprise-host>/api/v3`.
 * GITHUB_PAT - Personal Access Token with appropriate scopes to register/remove runners. For repository runners, the token needs `repo` scope. For organization runners, the token needs `admin:org` scope.
 * RUNNER_NAME - Name of the runner to register. This can be any string and is used to identify the runner in GitHub.
 * DEFAULT_RUNNER_GROUP - (Optional) Default GitHub self-hosted runner group to use when `RUNNER_GROUP` is unset or empty. Defaults to `Default`.
