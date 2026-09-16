@@ -140,6 +140,7 @@ EPHEMERAL="${EPHEMERAL:-true}"
 DISABLE_AUTO_UPDATE="${DISABLE_AUTO_UPDATE:-true}"
 EFFECTIVE_RUNNER_GROUP="${RUNNER_GROUP:-${DEFAULT_RUNNER_GROUP}}"
 NORMALIZED_GITHUB_URL="$(normalize_github_url "${GITHUB_URL}")"
+CONFIG_GITHUB_URL="https://${NORMALIZED_GITHUB_URL}"
 
 if [[ -n "${GITHUB_PAT:-}" ]]; then
   echo "Fetching short-lived registration token using GITHUB_PAT..."
@@ -151,7 +152,7 @@ elif [[ "${RUNNER_TOKEN:-}" == github_pat_* ]]; then
 fi
 
 CONFIG_ARGS=(
-  --url "${NORMALIZED_GITHUB_URL}"
+  --url "${CONFIG_GITHUB_URL}"
   --token "${RUNNER_TOKEN}"
   --name "${RUNNER_NAME}"
   --work "${RUNNER_WORKDIR}"
