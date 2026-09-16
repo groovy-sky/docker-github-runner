@@ -77,7 +77,8 @@ fetch_registration_token() {
 }
 
 # Required runtime env:
-#   GITHUB_URL   -> https://<host>/<org-or-user>/<repo> OR https://<host>/<org>
+#   GITHUB_URL   -> https://github.com/<org-or-user>/<repo>, https://github.com/<org>,
+#                   https://<subdomain>.ghe.com/<org-or-user>/<repo>, or https://<subdomain>.ghe.com/<org>
 #   RUNNER_TOKEN -> registration token
 #
 # Optional:
