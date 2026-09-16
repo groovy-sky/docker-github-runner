@@ -6,23 +6,38 @@ cd /opt/actions-runner
 fetch_runner_token() {
   local action="$1"
   local trimmed endpoint response code body token
-  local -a candidates=()
+  local host owner repo api_base
+  local -a candidates=() api_bases=()
 
-  trimmed="${GITHUB_URL%/}"
-  if [[ "${trimmed}" =~ ^https://github\.com/([^/]+)/([^/]+)$ ]]; then
-    candidates+=("repos/${BASH_REMATCH[1]}/${BASH_REMATCH[2]}")
-  elif [[ "${trimmed}" =~ ^https://github\.com/([^/]+)$ ]]; then
-    # Single-segment owner URL is valid only for organizations.
-    candidates+=("orgs/${BASH_REMATCH[1]}")
+  trimmed="${GITHUB_URL%%[\?#]*}"
+  trimmed="${trimmed%/}"
+  if [[ "${trimmed}" =~ ^https://([^/]+)/([^/]+)/([^/]+)$ ]]; then
+    host="${BASH_REMATCH[1]}"
+    owner="${BASH_REMATCH[2]}"
+    repo="${BASH_REMATCH[3]}"
+    candidates+=("repos/${owner}/${repo}")
+  elif [[ "${trimmed}" =~ ^https://([^/]+)/([^/]+)$ ]]; then
+    host="${BASH_REMATCH[1]}"
+    owner="${BASH_REMATCH[2]}"
+    candidates+=("orgs/${owner}")
   else
     echo "Unsupported GITHUB_URL format: ${GITHUB_URL}" >&2
-    echo "Expected https://github.com/ORG or https://github.com/OWNER/REPO" >&2
+    echo "Expected https://github.com/ORG, https://github.com/OWNER/REPO, https://<enterprise-host>/ORG, or https://<enterprise-host>/OWNER/REPO" >&2
     return 1
   fi
 
-  for candidate in "${candidates[@]}"; do
-    endpoint="https://api.github.com/${candidate}/actions/runners/${action}-token"
-    response="$(curl -sS \
+  if [[ "${host}" == "github.com" ]]; then
+    api_bases=("https://api.github.com")
+  elif [[ "${host}" =~ \.ghe\.com$ ]]; then
+    api_bases=("https://api.ghe.com" "https://${host}/api/v3")
+  else
+    api_bases=("https://${host}/api/v3")
+  fi
+
+  for api_base in "${api_bases[@]}"; do
+    for candidate in "${candidates[@]}"; do
+      endpoint="${api_base}/${candidate}/actions/runners/${action}-token"
+      response="$(curl -sS \
       -X POST \
       -H "Accept: application/vnd.github+json" \
       -H "X-GitHub-Api-Version: 2022-11-28" \
@@ -30,28 +45,29 @@ fetch_runner_token() {
       -w $'\n%{http_code}' \
       "${endpoint}")"
 
-    code="${response##*$'\n'}"
-    body="${response%$'\n'*}"
+      code="${response##*$'\n'}"
+      body="${response%$'\n'*}"
 
-    if [[ "${code}" == "404" ]]; then
-      continue
-    fi
+      if [[ "${code}" == "404" ]]; then
+        continue
+      fi
 
-    if [[ "${code}" != "200" && "${code}" != "201" ]]; then
-      echo "GitHub API call failed (${code}) at ${endpoint}" >&2
-      [[ -n "${body}" ]] && echo "${body}" >&2
-      return 1
-    fi
+      if [[ "${code}" != "200" && "${code}" != "201" ]]; then
+        echo "GitHub API call failed (${code}) at ${endpoint}" >&2
+        [[ -n "${body}" ]] && echo "${body}" >&2
+        return 1
+      fi
 
-    token="$(jq -r '.token // empty' <<< "${body}")"
-    if [[ -n "${token}" ]]; then
-      printf '%s\n' "${token}"
-      return 0
-    fi
+      token="$(jq -r '.token // empty' <<< "${body}")"
+      if [[ -n "${token}" ]]; then
+        printf '%s\n' "${token}"
+        return 0
+      fi
+    done
   done
 
-  if [[ "${trimmed}" =~ ^https://github\.com/([^/]+)$ ]]; then
-    echo "Failed to fetch ${action} token from GitHub API for organization '${BASH_REMATCH[1]}'." >&2
+  if [[ "${#candidates[@]}" == "1" && "${candidates[0]}" == orgs/* ]]; then
+    echo "Failed to fetch ${action} token from GitHub API for organization '${owner}'." >&2
     echo "If this is a personal account, use a repository URL instead: https://github.com/OWNER/REPO" >&2
     return 1
   fi
@@ -61,7 +77,8 @@ fetch_runner_token() {
 }
 
 # Required runtime env:
-#   GITHUB_URL   -> https://github.com/<org-or-user>/<repo> OR https://github.com/<org>
+#   GITHUB_URL   -> https://github.com/<org-or-user>/<repo>, https://github.com/<org>,
+#                   https://<enterprise-host>/<org-or-user>/<repo>, or https://<enterprise-host>/<org>
 #   RUNNER_TOKEN -> registration token
 #
 # Optional:
@@ -75,12 +92,14 @@ fetch_runner_token() {
 #   DISABLE_AUTO_UPDATE (default: true)
 
 print_runner_group_diagnostics() {
-  local effective_runner_group scope_desc
+  local effective_runner_group scope_desc normalized_github_url
   effective_runner_group="${RUNNER_GROUP:-${DEFAULT_RUNNER_GROUP}}"
+  normalized_github_url="${GITHUB_URL%%[\?#]*}"
+  normalized_github_url="${normalized_github_url%/}"
 
-  if [[ "${GITHUB_URL%/}" =~ ^https://github\.com/([^/]+)/([^/]+)$ ]]; then
+  if [[ "${normalized_github_url}" =~ ^https://[^/]+/([^/]+)/([^/]+)$ ]]; then
     scope_desc="repository '${BASH_REMATCH[1]}/${BASH_REMATCH[2]}'"
-  elif [[ "${GITHUB_URL%/}" =~ ^https://github\.com/([^/]+)$ ]]; then
+  elif [[ "${normalized_github_url}" =~ ^https://[^/]+/([^/]+)$ ]]; then
     scope_desc="organization '${BASH_REMATCH[1]}'"
   else
     scope_desc="the scope implied by GITHUB_URL"
