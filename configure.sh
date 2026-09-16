@@ -4,17 +4,16 @@ set -euo pipefail
 cd /opt/actions-runner
 
 fetch_registration_token() {
-  local trimmed endpoint response code body token
+  local endpoint response code body token
   local host owner repo api_base
   local -a candidates=()
 
-  trimmed="${GITHUB_URL%/}"
-  if [[ "${trimmed}" =~ ^https://([^/]+)/([^/]+)/([^/]+)$ ]]; then
+  if [[ "${GITHUB_URL}" =~ ^https://([^/]+)/([^/]+)/([^/]+)/?$ ]]; then
     host="${BASH_REMATCH[1]}"
     owner="${BASH_REMATCH[2]}"
     repo="${BASH_REMATCH[3]}"
     candidates+=("repos/${owner}/${repo}")
-  elif [[ "${trimmed}" =~ ^https://([^/]+)/([^/]+)$ ]]; then
+  elif [[ "${GITHUB_URL}" =~ ^https://([^/]+)/([^/]+)/?$ ]]; then
     host="${BASH_REMATCH[1]}"
     owner="${BASH_REMATCH[2]}"
     candidates+=("orgs/${owner}")
@@ -89,9 +88,9 @@ print_runner_group_diagnostics() {
   local effective_runner_group scope_desc
   effective_runner_group="${RUNNER_GROUP:-${DEFAULT_RUNNER_GROUP}}"
 
-  if [[ "${GITHUB_URL%/}" =~ ^https://[^/]+/([^/]+)/([^/]+)$ ]]; then
+  if [[ "${GITHUB_URL}" =~ ^https://[^/]+/([^/]+)/([^/]+)/?$ ]]; then
     scope_desc="repository '${BASH_REMATCH[1]}/${BASH_REMATCH[2]}'"
-  elif [[ "${GITHUB_URL%/}" =~ ^https://[^/]+/([^/]+)$ ]]; then
+  elif [[ "${GITHUB_URL}" =~ ^https://[^/]+/([^/]+)/?$ ]]; then
     scope_desc="organization '${BASH_REMATCH[1]}'"
   else
     scope_desc="the scope implied by GITHUB_URL"
